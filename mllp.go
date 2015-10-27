@@ -8,6 +8,7 @@ import (
 )
 
 type ErrInvalidHeader error
+type ErrInvalidContent error
 type ErrInvalidTrailer error
 
 func NewReader(r io.Reader) *Reader {
@@ -35,6 +36,10 @@ func (r Reader) ReadMessage() ([]byte, error) {
 		return nil, stackerr.Wrap(err)
 	}
 
+	if d[len(d)-2] != 0x0d {
+		return nil, ErrInvalidContent(stackerr.Newf("content should end with 0x0d; insead was %02x", d[len(d)-2]))
+	}
+
 	t, err := r.b.ReadByte()
 	if err != nil {
 		return nil, stackerr.Wrap(err)
@@ -43,7 +48,7 @@ func (r Reader) ReadMessage() ([]byte, error) {
 		return nil, ErrInvalidTrailer(stackerr.Newf("invalid trailer found; expected 0x0d but got %02x", t))
 	}
 
-	return d[0 : len(d)-1], nil
+	return d[0 : len(d)-2], nil
 }
 
 func NewWriter(w io.Writer) *Writer {
@@ -68,7 +73,7 @@ func (w Writer) WriteMessage(b []byte) error {
 		b = b[n:]
 	}
 
-	if _, err := w.w.Write([]byte{0x1c, 0x0d}); err != nil {
+	if _, err := w.w.Write([]byte{0x0d, 0x1c, 0x0d}); err != nil {
 		return stackerr.Wrap(err)
 	}
 

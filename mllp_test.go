@@ -8,7 +8,7 @@ import (
 )
 
 func wrapWithMarkers(b []byte) []byte {
-	return append(append([]byte{0x0b}, b...), 0x1c, 0x0d)
+	return append(append([]byte{0x0b}, b...), 0x0d, 0x1c, 0x0d)
 }
 
 func TestReadMessage(t *testing.T) {
