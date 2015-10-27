@@ -30,7 +30,7 @@ func (r Reader) ReadMessage() ([]byte, error) {
 		return nil, ErrInvalidHeader(stackerr.Newf("invalid header found; expected 0x0b but got %02x", c))
 	}
 
-	d, err := r.b.ReadBytes(byte(0x1C))
+	d, err := r.b.ReadBytes(byte(0x1c))
 	if err != nil {
 		return nil, stackerr.Wrap(err)
 	}
@@ -44,4 +44,45 @@ func (r Reader) ReadMessage() ([]byte, error) {
 	}
 
 	return d[0 : len(d)-1], nil
+}
+
+func NewWriter(w io.Writer) *Writer {
+	return &Writer{w: w}
+}
+
+type Writer struct {
+	w io.Writer
+}
+
+func (w Writer) WriteMessage(b []byte) error {
+	if _, err := w.w.Write([]byte{0x0b}); err != nil {
+		return stackerr.Wrap(err)
+	}
+
+	for len(b) > 0 {
+		n, err := w.w.Write(b)
+		if err != nil {
+			return stackerr.Wrap(err)
+		}
+
+		b = b[n:]
+	}
+
+	if _, err := w.w.Write([]byte{0x1c, 0x0d}); err != nil {
+		return stackerr.Wrap(err)
+	}
+
+	return nil
+}
+
+func NewReadWriter(rw io.ReadWriter) *ReadWriter {
+	return &ReadWriter{
+		Reader: NewReader(rw),
+		Writer: NewWriter(rw),
+	}
+}
+
+type ReadWriter struct {
+	*Reader
+	*Writer
 }

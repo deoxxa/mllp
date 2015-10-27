@@ -1,30 +1,67 @@
 package mllp
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"testing"
 )
-
-const sampleMessage = `MSH|^~\&|ZIS|1^AHospital|||199605141144||ADT^A01|20031104082400|P|2.3|||
-AL|NE|||8859/15|<CR>EVN|A01|20031104082400.0000+0100|20031104082400
-PID||""|10||Vries^Danny^D.^^de||19951202|M|||Rembrandlaan^7^Leiden^^7301TH^""
-^^P||""|""||""|||||||""|""<CR>PV1||I|3w^301^""^01|S|||100^van den Berg^^A.S.
-^^""^dr|""||9||||H||||20031104082400.0000+0100`
 
 func wrapWithMarkers(b []byte) []byte {
 	return append(append([]byte{0x0b}, b...), 0x1c, 0x0d)
 }
 
 func TestReadMessage(t *testing.T) {
-	r := NewReader(bytes.NewReader(wrapWithMarkers([]byte(sampleMessage))))
+	r := NewReader(bytes.NewReader(wrapWithMarkers([]byte("hello"))))
 
 	m, err := r.ReadMessage()
 	if err != nil {
 		panic(err)
 	}
 
-	if string(m) != sampleMessage {
+	if string(m) != "hello" {
+		panic(fmt.Errorf("data was corrupted"))
+	}
+}
+
+func TestWriter(t *testing.T) {
+	b := bytes.NewBuffer(nil)
+
+	w := NewWriter(b)
+
+	if err := w.WriteMessage([]byte("hello")); err != nil {
+		panic(err)
+	}
+
+	if !bytes.Equal(b.Bytes(), wrapWithMarkers([]byte("hello"))) {
+		panic(fmt.Errorf("data was corrupted"))
+	}
+}
+
+func TestReadWriter(t *testing.T) {
+	r := bytes.NewReader(wrapWithMarkers([]byte("input")))
+	w := bytes.NewBuffer(nil)
+
+	brw := bufio.NewReadWriter(bufio.NewReader(r), bufio.NewWriter(w))
+
+	rw := NewReadWriter(brw)
+
+	m, err := rw.ReadMessage()
+	if err != nil {
+		panic(err)
+	}
+
+	if string(m) != "input" {
+		panic(fmt.Errorf("data was corrupted"))
+	}
+
+	if err := rw.WriteMessage([]byte("output")); err != nil {
+		panic(err)
+	}
+
+	brw.Flush()
+
+	if !bytes.Equal(w.Bytes(), wrapWithMarkers([]byte("output"))) {
 		panic(fmt.Errorf("data was corrupted"))
 	}
 }
