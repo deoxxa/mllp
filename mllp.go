@@ -9,6 +9,7 @@ import (
 
 type ErrInvalidHeader error
 type ErrInvalidContent error
+type ErrInvalidBoundary error
 type ErrInvalidTrailer error
 
 func NewReader(r io.Reader) *Reader {
@@ -37,7 +38,7 @@ func (r Reader) ReadMessage() ([]byte, error) {
 	}
 
 	if d[len(d)-2] != 0x0d {
-		return nil, ErrInvalidContent(stackerr.Newf("content should end with 0x0d; insead was %02x", d[len(d)-2]))
+		return nil, ErrInvalidBoundary(stackerr.Newf("content should end with 0x0d; instead was %02x", d[len(d)-2]))
 	}
 
 	t, err := r.b.ReadByte()
