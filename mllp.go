@@ -37,6 +37,10 @@ func (r Reader) ReadMessage() ([]byte, error) {
 		return nil, stackerr.Wrap(err)
 	}
 
+	if len(d) < 2 {
+		return nil, ErrInvalidContent(stackerr.Newf("content including boundary should be at least two bytes long; instead was %d", len(d)))
+	}
+
 	if d[len(d)-2] != 0x0d {
 		return nil, ErrInvalidBoundary(stackerr.Newf("content should end with 0x0d; instead was %02x", d[len(d)-2]))
 	}
